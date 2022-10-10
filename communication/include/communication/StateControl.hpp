@@ -30,6 +30,7 @@ class StateControl {
   }
 
   void restartComm(uint32_t id) { comm_restart_cb_registry_.invokeAll(id); }
+  void restartThinReplicaServer(uint32_t id) { comm_restart_cb_registry_.invokeAll(id); }
   void setGetPeerPubKeyMethod(std::function<std::string(uint32_t)> m) { get_peer_pub_key_ = std::move(m); }
   std::string getPeerPubKey(uint32_t id) {
     if (get_peer_pub_key_) return get_peer_pub_key_(id);
