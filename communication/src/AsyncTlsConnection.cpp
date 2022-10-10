@@ -238,6 +238,7 @@ void AsyncTlsConnection::write(std::shared_ptr<OutgoingMsg> msg) {
     LOG_ERROR(logger_, "write_msg_ already in use by other thread, msg pushed to the write queue.");
     return;
   }
+  LOG_DEBUG(logger_, "Writing" << KVLOG(write_msg_->msg.size()));
 
   // We don't want to include tcp transmission time.
   histograms_.send_time_in_queue->recordAtomic(durationInMicros(write_msg_->send_time));
@@ -269,7 +270,7 @@ void AsyncTlsConnection::write(std::shared_ptr<OutgoingMsg> msg) {
         write_msg_used_ = false;
         write(write_queue_.pop());
       }));
-  LOG_DEBUG(logger_, "Write:" << KVLOG(peer_id_.value(), write_msg_->msg.size()));
+  LOG_DEBUG(logger_, "Write:" << KVLOG(peer_id_.value()));
   startWriteTimer();
 }
 
@@ -295,7 +296,9 @@ void AsyncTlsConnection::initClientSSLContext(NodeNum destination) {
   asio::error_code ec;
   ssl_context_.set_verify_callback(
       [this, self, destination](auto /*preverified*/, auto& ctx) -> bool {
+        LOG_INFO(logger_, "In set_verify_callback : ");
         if (self.expired()) return false;
+        LOG_INFO(logger_, "Calling verifyCertificateClient : ");
         return verifyCertificateClient(ctx, destination);
       },
       ec);
@@ -406,6 +409,7 @@ bool AsyncTlsConnection::verifyCertificateClient(asio::ssl::verify_context& ctx,
     LOG_WARN(logger_, "No certificate from server at node " << expected_dest_id);
     return false;
   }
+  LOG_INFO(logger_, "calling checkCertificate !!");
   auto [valid, _] = checkCertificate(cert, expected_dest_id);
   (void)_;  // unused variable hack
   return valid;
@@ -469,6 +473,7 @@ std::pair<bool, NodeNum> AsyncTlsConnection::checkCertificate(X509* received_cer
   out.close();
   BIO_free(outbio);
   LOG_INFO(logger_, "new certificate has been updated on local storage, peer: " << peerId);
+  bft::communication::StateControl::instance().restartThinReplicaServer(0);
   return std::make_pair(res, peerId);
 }
 
