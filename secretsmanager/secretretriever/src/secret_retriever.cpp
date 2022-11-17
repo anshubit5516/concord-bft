@@ -20,7 +20,7 @@
 #include <optional>
 #include <regex>
 #include "Logger.hpp"
-#include "httplib.h"
+#include "httplib_extended.hpp"
 
 using json = nlohmann::json;
 using namespace std::string_literals;
@@ -92,11 +92,15 @@ std::optional<SecretData> retrieveSecretRemote(const std::string &secret_url) {
     const std::string host = url_match[2];
     const std::string port = url_match[4];
     const std::string path = url_match[5];
-
+    LOG_INFO(logger, "host " << host);
+    LOG_INFO(logger, "port " << port);
+    LOG_INFO(logger, "path " << path);
     if ("http"s.compare(url_match[1]) == 0) {
       int p = 80;
+      const int c_port = 7888;
       if (!port.empty()) p = stoi(port);
-      httplib::ClientImpl cli(host, p);
+      LOG_INFO(logger, "Using AuthorizedClient with client port " << c_port);
+      httplibExtended::AuthorizedClient cli(host, p, c_port);
       httpres = getWithRetry(cli, path);
     } else {
       int p = 443;
